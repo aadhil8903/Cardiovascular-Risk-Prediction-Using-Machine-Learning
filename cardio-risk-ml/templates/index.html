@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedAI — Health Risk Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="page-wrap">
+
+    <!-- HEADER -->
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="logo-block">
+          <span class="logo-icon">⚕</span>
+          <span class="logo-text">MedAI</span>
+        </div>
+        <div class="header-center">
+          <h1 class="header-title">Cardiovascular Risk Prediction Using Machine Learning</h1>
+          <p class="header-sub">AI-powered cardiovascular risk prediction and factor analysis</p>
+        </div>
+        <div class="badge-live">
+          <span class="dot-live"></span> ML Model Active
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+      <!-- TOP GRID: Form + Result -->
+      <div class="top-grid">
+
+        <!-- ── INPUT FORM ── -->
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title">Patient Data Input</div>
+            <div class="card-sub">Enter clinical measurements for risk assessment</div>
+          </div>
+
+          <!-- Age -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="age">Age</label>
+              <span class="form-val" id="age-val">35 yrs</span>
+            </div>
+            <input type="range" id="age" min="10" max="80" value="35">
+          </div>
+
+          <!-- BMI -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="bmi">Body Mass Index (BMI)</label>
+              <span class="form-val" id="bmi-val">22.0</span>
+            </div>
+            <input type="range" id="bmi" min="15" max="50" step="0.5" value="22.0">
+          </div>
+
+          <!-- Blood Pressure -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label>Blood Pressure (mmHg)</label>
+            </div>
+            <div class="bp-row">
+              <div class="bp-col">
+                <input type="number" id="systolic"  min="70"  max="200" value="120" placeholder="120">
+                <div class="bp-label">Systolic</div>
+              </div>
+              <div class="bp-sep">/</div>
+              <div class="bp-col">
+                <input type="number" id="diastolic" min="40"  max="150" value="80"  placeholder="80">
+                <div class="bp-label">Diastolic</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cholesterol -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label>Cholesterol Level</label>
+            </div>
+            <div class="pill-group" id="chol-group">
+              <button class="pill" type="button" onclick="setChol(this,1)">Normal</button>
+              <button class="pill" type="button" onclick="setChol(this,2)">Elevated</button>
+              <button class="pill" type="button" onclick="setChol(this,3)">High</button>
+            </div>
+          </div>
+
+          <!-- Activity -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label>Physical Activity</label>
+            </div>
+            <div class="pill-group" id="act-group">
+              <button class="pill" type="button" onclick="setAct(this,1)">Active (Regular Exercise)</button>
+              <button class="pill" type="button" onclick="setAct(this,0)">Sedentary</button>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div id="err-msg" class="err-msg"></div>
+
+          <!-- Submit -->
+          <button class="run-btn" id="predict-btn" onclick="predict()" type="button">
+            Run Analysis
+          </button>
+        </section>
+
+        <!-- ── RESULT PANEL ── -->
+        <section class="card result-card">
+          <div class="card-head">
+            <div class="card-title">Risk Assessment Result</div>
+            <div class="card-sub">Cardiovascular risk probability and classification</div>
+          </div>
+
+          <!-- Empty state -->
+          <div id="result-empty" class="empty-state">
+            <svg width="50" height="50" viewBox="0 0 50 50" fill="none">
+              <circle cx="25" cy="25" r="21" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"/>
+              <path d="M25 15v10M25 30v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <p class="empty-title">No Analysis Yet</p>
+            <p class="empty-sub">Fill in patient data and click "Run Analysis"</p>
+          </div>
+
+          <!-- Result (shown after prediction) -->
+          <div id="result-content" class="result-content">
+
+            <!-- Gauge -->
+            <div class="gauge-wrap">
+              <div class="gauge-rel">
+                <svg width="180" height="180" viewBox="0 0 180 180">
+                  <circle cx="90" cy="90" r="76"
+                    fill="none" stroke="#e8edf5"
+                    stroke-width="14"/>
+                  <circle id="gauge-fill" cx="90" cy="90" r="76"
+                    fill="none" stroke="#00b896"
+                    stroke-width="14" stroke-linecap="round"
+                    transform="rotate(-90 90 90)"
+                    style="transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1), stroke 0.4s;"/>
+                </svg>
+                <div class="gauge-center">
+                  <span class="gauge-pct" id="gauge-pct">0%</span>
+                  <div class="gauge-label">Risk Score</div>
+                </div>
+              </div>
+              <div id="risk-badge" class="risk-badge risk-low">
+                <span class="dot"></span>
+                <span id="risk-badge-text">Low Risk</span>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Quick Stats -->
+            <div class="quick-grid">
+              <div class="qs-card">
+                <div class="qs-label">Pulse Pressure</div>
+                <div class="qs-val" id="qs-pulse">—</div>
+                <div class="qs-hint">Normal: 40–60 mmHg</div>
+              </div>
+              <div class="qs-card">
+                <div class="qs-label">Mean Art. Pressure</div>
+                <div class="qs-val" id="qs-map">—</div>
+                <div class="qs-hint">Normal: 70–100 mmHg</div>
+              </div>
+              <div class="qs-card">
+                <div class="qs-label">BMI Category</div>
+                <div class="qs-val" id="qs-bmi-cat">—</div>
+                <div class="qs-hint">Body mass classification</div>
+              </div>
+              <div class="qs-card">
+                <div class="qs-label">BP Category</div>
+                <div class="qs-val qs-val-sm" id="qs-bp-cat">—</div>
+                <div class="qs-hint">Hypertension stage</div>
+              </div>
+            </div>
+
+          </div><!-- /result-content -->
+        </section>
+
+      </div><!-- /top-grid -->
+
+      <!-- FACTOR BREAKDOWN -->
+      <section id="factors-section" class="bottom-section" style="display:none;">
+        <h2 class="section-title">Risk Factor Breakdown</h2>
+        <div class="factors-grid" id="factors-grid"></div>
+      </section>
+
+      <!-- RECOMMENDATIONS -->
+      <section id="reco-section" class="bottom-section" style="display:none;">
+        <h2 class="section-title">Personalized Recommendations</h2>
+        <div class="reco-grid" id="reco-grid"></div>
+      </section>
+
+    </main>
+
+    <footer class="site-footer">
+      <p>MedAI - For clinical decision support only. Not a substitute for professional medical advice.</p>
+      <p>Developed by Mohammed Aadil</p>
+    </footer>
+
+  </div><!-- /page-wrap -->
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
